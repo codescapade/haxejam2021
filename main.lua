@@ -199,10 +199,13 @@ local Array = _hx_e()
 local String = _hx_e()
 local Std = _hx_e()
 __defold_support_Script = _hx_e()
-local Hello = _hx_e()
+local LevelTest = _hx_e()
+local Loader = _hx_e()
 local Math = _hx_e()
+local Messages = _hx_e()
+__defold_CollectionproxyMessages = _hx_e()
+__defold_GoMessages = _hx_e()
 __defold_support_Init = _hx_e()
-__haxe_Log = _hx_e()
 __haxe_iterators_ArrayIterator = _hx_e()
 __haxe_iterators_ArrayKeyValueIterator = _hx_e()
 
@@ -717,20 +720,104 @@ end
 __defold_support_Script.super = function(self) 
 end
 
-Hello.new = function() 
-  local self = _hx_new(Hello.prototype)
-  Hello.super(self)
+LevelTest.new = function() 
+  local self = _hx_new(LevelTest.prototype)
+  LevelTest.super(self)
   return self
 end
-Hello.super = function(self) 
+LevelTest.super = function(self) 
   __defold_support_Script.super(self);
 end
-Hello.prototype = _hx_e();
-Hello.prototype.init = function(self,_self) 
-  __haxe_Log.trace(Std.string(Std.string("Haxe is over ") .. Std.string(_self.power)) .. Std.string("!"), _hx_o({__fields__={fileName=true,lineNumber=true,className=true,methodName=true},fileName="src/Hello.hx",lineNumber=14,className="Hello",methodName="init"}));
+LevelTest.prototype = _hx_e();
+LevelTest.prototype.init = function(self,_self) 
+  _G.msg.post(".", __defold_GoMessages.acquire_input_focus);
+  local _hx_1_bounds_x, _hx_1_bounds_y, _hx_1_bounds_w, _hx_1_bounds_h = _G.tilemap.get_bounds("#map");
+  local _g = 3;
+  local _g1 = _hx_1_bounds_h + 1;
+  while (_g < _g1) do 
+    _g = _g + 1;
+    local y = _g - 1;
+    local _g = 3;
+    local _g1 = _hx_1_bounds_w + 1;
+    while (_g < _g1) do 
+      _g = _g + 1;
+      _G.tilemap.set_tile("#map", "layer1", _g - 1, y, 1);
+    end;
+  end;
+  _self.currentTileIndex = 0;
 end
-Hello.__super__ = __defold_support_Script
-setmetatable(Hello.prototype,{__index=__defold_support_Script.prototype})
+LevelTest.prototype.on_input = function(self,_self,action_id,action) 
+  if (action_id == LevelTest.TOUCH) then 
+    if (action.pressed) then 
+      _self.touchDown = true;
+    else
+      if (action.released) then 
+        _self.touchDown = false;
+      end;
+    end;
+  end;
+  if (not _self.touchDown) then 
+    do return true end;
+  end;
+  local x = _G.math.ceil(action.x / LevelTest.TILE_SIZE);
+  local y = _G.math.ceil(action.y / LevelTest.TILE_SIZE);
+  if (y == 1) then 
+    _self.currentTileIndex = _G.tilemap.get_tile("#map", "layer1", x, y);
+  else
+    if (self:inBounds(x, y)) then 
+      _G.tilemap.set_tile("#map", "layer1", x, y, _self.currentTileIndex);
+    end;
+  end;
+  do return true end
+end
+LevelTest.prototype.inBounds = function(self,x,y) 
+  local _hx_1_bounds_x, _hx_1_bounds_y, _hx_1_bounds_w, _hx_1_bounds_h = _G.tilemap.get_bounds("#map");
+  if (((x > 2) and (x < _hx_1_bounds_w)) and (y > 3)) then 
+    do return y < _hx_1_bounds_h end;
+  else
+    do return false end;
+  end;
+end
+LevelTest.__super__ = __defold_support_Script
+setmetatable(LevelTest.prototype,{__index=__defold_support_Script.prototype})
+
+Loader.new = function() 
+  local self = _hx_new(Loader.prototype)
+  Loader.super(self)
+  return self
+end
+Loader.super = function(self) 
+  __defold_support_Script.super(self);
+end
+Loader.prototype = _hx_e();
+Loader.prototype.init = function(self,_self) 
+  _G.math.randomseed(_G.os.time());
+  _G.math.random(0, 1);
+  _G.msg.post(".", __defold_GoMessages.acquire_input_focus);
+  self:loadCollection(_self, "#game");
+end
+Loader.prototype.final_ = function(self,_self) 
+  _G.msg.post(".", __defold_GoMessages.release_input_focus);
+end
+Loader.prototype.on_message = function(self,_self,message_id,message,sender) 
+  if (message_id) == Messages.changeCollection then 
+    _self.nextCollection = _hx_funcToField(message.collection);
+    self:unloadCollection(_self.currentCollection);
+  elseif (message_id) == __defold_CollectionproxyMessages.proxy_loaded then 
+    _G.msg.post(sender, __defold_CollectionproxyMessages.init);
+    _G.msg.post(sender, __defold_CollectionproxyMessages.enable);
+  elseif (message_id) == __defold_CollectionproxyMessages.proxy_unloaded then 
+    self:loadCollection(_self, _self.nextCollection); end;
+end
+Loader.prototype.loadCollection = function(self,_self,collection) 
+  _self.currentCollection = collection;
+  _G.msg.post(collection, __defold_CollectionproxyMessages.load);
+end
+Loader.prototype.unloadCollection = function(self,collection) 
+  _G.msg.post(collection, __defold_CollectionproxyMessages.unload);
+end
+Loader.__super__ = __defold_support_Script
+setmetatable(Loader.prototype,{__index=__defold_support_Script.prototype})
 
 Math.new = {}
 Math.isNaN = function(f) 
@@ -751,35 +838,31 @@ Math.min = function(a,b)
   end;
 end
 
+Messages.new = {}
+
+__defold_CollectionproxyMessages.new = {}
+
+__defold_GoMessages.new = {}
+
 __defold_support_Init.new = {}
 __defold_support_Init.init = function(exports) 
-  local script = Hello.new();
-  exports.Hello_init = function(_self) 
+  local script = Loader.new();
+  exports.Loader_init = function(_self) 
     script:init(_self);
   end;
-end
-
-__haxe_Log.new = {}
-__haxe_Log.formatOutput = function(v,infos) 
-  local str = Std.string(v);
-  if (infos == nil) then 
-    do return str end;
+  exports.Loader_final_ = function(_self) 
+    script:final_(_self);
   end;
-  local pstr = Std.string(Std.string(infos.fileName) .. Std.string(":")) .. Std.string(infos.lineNumber);
-  if (infos.customParams ~= nil) then 
-    local _g = 0;
-    local _g1 = infos.customParams;
-    while (_g < _g1.length) do 
-      local v = _g1[_g];
-      _g = _g + 1;
-      str = Std.string(str) .. Std.string((Std.string(", ") .. Std.string(Std.string(v))));
-    end;
+  exports.Loader_on_message = function(_self,message_id,message,sender) 
+    script:on_message(_self, message_id, message, sender);
   end;
-  do return Std.string(Std.string(pstr) .. Std.string(": ")) .. Std.string(str) end;
-end
-__haxe_Log.trace = function(v,infos) 
-  local str = __haxe_Log.formatOutput(v, infos);
-  _hx_print(str);
+  local script = LevelTest.new();
+  exports.LevelTest_init = function(_self) 
+    script:init(_self);
+  end;
+  exports.LevelTest_on_input = function(_self,action_id,action) 
+    do return script:on_input(_self, action_id, action) end;
+  end;
 end
 
 __haxe_iterators_ArrayIterator.new = function(array) 
@@ -845,9 +928,39 @@ _hx_array_mt.__index = Array.prototype
 local _hx_static_init = function()
   
   _hxdefold_ = _hxdefold_ or {}
-  __defold_support_Init.init(_hxdefold_);
+  __defold_support_Init.init(_hxdefold_);LevelTest.TILE_SIZE = 32;
+  
+  LevelTest.TOUCH = _G.hash("touch");
+  
+  Messages.changeCollection = _G.hash("changeCollection");
+  
+  __defold_CollectionproxyMessages.enable = _G.hash("enable");
+  
+  __defold_CollectionproxyMessages.init = _G.hash("init");
+  
+  __defold_CollectionproxyMessages.load = _G.hash("load");
+  
+  __defold_CollectionproxyMessages.proxy_loaded = _G.hash("proxy_loaded");
+  
+  __defold_CollectionproxyMessages.proxy_unloaded = _G.hash("proxy_unloaded");
+  
+  __defold_CollectionproxyMessages.unload = _G.hash("unload");
+  
+  __defold_GoMessages.acquire_input_focus = _G.hash("acquire_input_focus");
+  
+  __defold_GoMessages.release_input_focus = _G.hash("release_input_focus");
+  
+  
 end
 
-_hx_print = print or (function() end)
+_hx_funcToField = function(f)
+  if type(f) == 'function' then
+    return function(self,...)
+      return f(...)
+    end
+  else
+    return f
+  end
+end
 
 _hx_static_init();
