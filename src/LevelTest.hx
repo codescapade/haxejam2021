@@ -47,8 +47,10 @@ class LevelTest extends Script<LevelTestData> {
       return true;
     }
 
-    var x = Math.ceil(action.x / TILE_SIZE);
-    var y = Math.ceil(action.y / TILE_SIZE);
+    var worldPos = Camera.toWorld(action.x, action.y);
+    trace(worldPos.x);
+    var x = Math.ceil(worldPos.x / TILE_SIZE);
+    var y = Math.ceil(worldPos.y / TILE_SIZE);
 
     if (y == 1) {
       self.currentTileIndex = Tilemap.get_tile('#map', 'layer1', x, y);
@@ -56,7 +58,7 @@ class LevelTest extends Script<LevelTestData> {
       Tilemap.set_tile('#map', 'layer1', x, y, self.currentTileIndex);
     }
 
-    return true;
+    return false;
   }
 
   function inBounds(x: Int, y: Int): Bool {

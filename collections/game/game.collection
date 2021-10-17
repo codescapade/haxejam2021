@@ -52,7 +52,22 @@ embedded_instances {
 }
 embedded_instances {
   id: "cam"
-  data: "embedded_components {\n"
+  data: "components {\n"
+  "  id: \"Camera\"\n"
+  "  component: \"/scripts/Camera.script\"\n"
+  "  position {\n"
+  "    x: 0.0\n"
+  "    y: 0.0\n"
+  "    z: 0.0\n"
+  "  }\n"
+  "  rotation {\n"
+  "    x: 0.0\n"
+  "    y: 0.0\n"
+  "    z: 0.0\n"
+  "    w: 1.0\n"
+  "  }\n"
+  "}\n"
+  "embedded_components {\n"
   "  id: \"camera\"\n"
   "  type: \"camera\"\n"
   "  data: \"aspect_ratio: 1.0\\n"
@@ -75,7 +90,7 @@ embedded_instances {
   "}\n"
   ""
   position {
-    x: 0.0
+    x: 300.0
     y: 0.0
     z: 0.0
   }

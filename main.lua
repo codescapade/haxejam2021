@@ -196,18 +196,25 @@ local Class = _hx_e();
 local Enum = _hx_e();
 
 local Array = _hx_e()
+__defold_support_Script = _hx_e()
+local Camera = _hx_e()
 local String = _hx_e()
 local Std = _hx_e()
-__defold_support_Script = _hx_e()
 local LevelTest = _hx_e()
 local Loader = _hx_e()
 local Math = _hx_e()
 local Messages = _hx_e()
+__defold_CameraMessages = _hx_e()
 __defold_CollectionproxyMessages = _hx_e()
 __defold_GoMessages = _hx_e()
+__defold_RenderMessages = _hx_e()
+__defold_support_RenderScript = _hx_e()
+__renderer_Renderer = _hx_e()
 __defold_support_Init = _hx_e()
+__haxe_Log = _hx_e()
 __haxe_iterators_ArrayIterator = _hx_e()
 __haxe_iterators_ArrayKeyValueIterator = _hx_e()
+__renderer_RenderHelper = _hx_e()
 
 local _hx_bind, _hx_bit, _hx_staticToInstance, _hx_funcToField, _hx_maxn, _hx_print, _hx_apply_self, _hx_box_mr, _hx_bit_clamp, _hx_table, _hx_bit_raw
 local _hx_pcall_default = {};
@@ -523,6 +530,56 @@ Array.prototype.resize = function(self,len)
   end;
 end
 
+__defold_support_Script.new = function() 
+  local self = _hx_new()
+  __defold_support_Script.super(self)
+  return self
+end
+__defold_support_Script.super = function(self) 
+end
+
+Camera.new = function() 
+  local self = _hx_new(Camera.prototype)
+  Camera.super(self)
+  return self
+end
+Camera.super = function(self) 
+  __defold_support_Script.super(self);
+end
+Camera.toWorld = function(x,y) 
+  local pos = _G.go.get_position("cam");
+  __haxe_Log.trace(Std.string("cam x: ") .. Std.string(pos.x), _hx_o({__fields__={fileName=true,lineNumber=true,className=true,methodName=true},fileName="src/Camera.hx",lineNumber=26,className="Camera",methodName="toWorld"}));
+  local worldPos = __renderer_RenderHelper.instance:screenToWorld(x, y);
+  do return _G.vmath.vector3(worldPos.x + pos.x, worldPos.y + pos.y, 0) end;
+end
+Camera.prototype = _hx_e();
+Camera.prototype.init = function(self,_self) 
+  _G.msg.post("#camera", __defold_CameraMessages.acquire_camera_focus);
+  _G.msg.post(".", __defold_GoMessages.acquire_input_focus);
+  Camera.zoom = 1;
+end
+Camera.prototype.final_ = function(self,_self) 
+  _G.msg.post(".", __defold_GoMessages.release_input_focus);
+end
+Camera.prototype.on_input = function(self,_self,action_id,action) 
+  if (action_id == Camera.WHEEL_DOWN) then 
+    if (Camera.zoom < Camera.MAX_ZOOM) then 
+      Camera.zoom = Camera.zoom + 0.05;
+      __renderer_RenderHelper.instance.zoom = _hx_funcToField(Camera.zoom);
+    end;
+  else
+    if (action_id == Camera.WHEEL_UP) then 
+      if (Camera.zoom > Camera.MIN_ZOOM) then 
+        Camera.zoom = Camera.zoom - 0.05;
+        __renderer_RenderHelper.instance.zoom = _hx_funcToField(Camera.zoom);
+      end;
+    end;
+  end;
+  do return false end
+end
+Camera.__super__ = __defold_support_Script
+setmetatable(Camera.prototype,{__index=__defold_support_Script.prototype})
+
 String.new = function(string) 
   local self = _hx_new(String.prototype)
   String.super(self,string)
@@ -712,14 +769,6 @@ Std.int = function(x)
   end;
 end
 
-__defold_support_Script.new = function() 
-  local self = _hx_new()
-  __defold_support_Script.super(self)
-  return self
-end
-__defold_support_Script.super = function(self) 
-end
-
 LevelTest.new = function() 
   local self = _hx_new(LevelTest.prototype)
   LevelTest.super(self)
@@ -746,6 +795,9 @@ LevelTest.prototype.init = function(self,_self)
   end;
   _self.currentTileIndex = 0;
 end
+LevelTest.prototype.final_ = function(self,_self) 
+  _G.msg.post(".", __defold_GoMessages.release_input_focus);
+end
 LevelTest.prototype.on_input = function(self,_self,action_id,action) 
   if (action_id == LevelTest.TOUCH) then 
     if (action.pressed) then 
@@ -759,8 +811,10 @@ LevelTest.prototype.on_input = function(self,_self,action_id,action)
   if (not _self.touchDown) then 
     do return true end;
   end;
-  local x = _G.math.ceil(action.x / LevelTest.TILE_SIZE);
-  local y = _G.math.ceil(action.y / LevelTest.TILE_SIZE);
+  local worldPos = Camera.toWorld(action.x, action.y);
+  __haxe_Log.trace(worldPos.x, _hx_o({__fields__={fileName=true,lineNumber=true,className=true,methodName=true},fileName="src/LevelTest.hx",lineNumber=52,className="LevelTest",methodName="on_input"}));
+  local x = _G.math.ceil(worldPos.x / LevelTest.TILE_SIZE);
+  local y = _G.math.ceil(worldPos.y / LevelTest.TILE_SIZE);
   if (y == 1) then 
     _self.currentTileIndex = _G.tilemap.get_tile("#map", "layer1", x, y);
   else
@@ -768,7 +822,7 @@ LevelTest.prototype.on_input = function(self,_self,action_id,action)
       _G.tilemap.set_tile("#map", "layer1", x, y, _self.currentTileIndex);
     end;
   end;
-  do return true end
+  do return false end
 end
 LevelTest.prototype.inBounds = function(self,x,y) 
   local _hx_1_bounds_x, _hx_1_bounds_y, _hx_1_bounds_w, _hx_1_bounds_h = _G.tilemap.get_bounds("#map");
@@ -840,9 +894,105 @@ end
 
 Messages.new = {}
 
+__defold_CameraMessages.new = {}
+
 __defold_CollectionproxyMessages.new = {}
 
 __defold_GoMessages.new = {}
+
+__defold_RenderMessages.new = {}
+
+__defold_support_RenderScript.new = function() 
+  local self = _hx_new()
+  __defold_support_RenderScript.super(self)
+  return self
+end
+__defold_support_RenderScript.super = function(self) 
+end
+
+__renderer_Renderer.new = function() 
+  local self = _hx_new(__renderer_Renderer.prototype)
+  __renderer_Renderer.super(self)
+  return self
+end
+__renderer_Renderer.super = function(self) 
+  __defold_support_RenderScript.super(self);
+end
+__renderer_Renderer.prototype = _hx_e();
+__renderer_Renderer.prototype.init = function(self,_self) 
+  _self.tilePred = _G.render.predicate(({"tile"}));
+  _self.guiPred = _G.render.predicate(({"gui"}));
+  _self.textPred = _G.render.predicate(({"text"}));
+  _self.particlePred = _G.render.predicate(({"particle"}));
+  _self.clearColor = _G.vmath.vector4(0, 0, 0, 0);
+  local tmp = _G.sys.get_config("render.clear_color_red", "0");
+  _self.clearColor.x = _G.tonumber(tmp);
+  local tmp = _G.sys.get_config("render.clear_color_green", "0");
+  _self.clearColor.y = _G.tonumber(tmp);
+  local tmp = _G.sys.get_config("render.clear_color_blue", "0");
+  _self.clearColor.z = _G.tonumber(tmp);
+  local tmp = _G.sys.get_config("render.clear_color_alpha", "0");
+  _self.clearColor.w = _G.tonumber(tmp);
+  _self.view = _G.vmath.matrix4();
+  _self.clearData = ({});
+  _G.table.insert(_self.clearData, _G.render.BUFFER_COLOR_BIT, _self.clearColor);
+  _G.table.insert(_self.clearData, _G.render.BUFFER_DEPTH_BIT, 1);
+  _G.table.insert(_self.clearData, _G.render.BUFFER_STENCIL_BIT, 0);
+  _self.designWidth = 960;
+  _self.designHeight = 640;
+  _self.currentSize = _hx_o({__fields__={width=true,height=true},width=0,height=0});
+  _self.projectedSize = _hx_o({__fields__={width=true,height=true},width=0,height=0});
+  _self.offset = _G.vmath.vector3(0, 0, 0);
+end
+__renderer_Renderer.prototype.update = function(self,_self,dt) 
+  _G.render.set_depth_mask(true);
+  _self.clearData[_G.render.BUFFER_COLOR_BIT] = _self.clearColor;
+  _G.render.clear(_self.clearData);
+  _self.currentSize.width = _G.render.get_window_width();
+  _self.currentSize.height = _G.render.get_window_height();
+  _G.render.set_viewport(0, 0, Std.int(_self.currentSize.width), Std.int(_self.currentSize.height));
+  _G.render.set_view(_self.view);
+  _G.render.set_depth_mask(false);
+  _G.render.disable_state(_G.render.STATE_DEPTH_TEST);
+  _G.render.disable_state(_G.render.STATE_STENCIL_TEST);
+  _G.render.enable_state(_G.render.STATE_BLEND);
+  _G.render.set_blend_func(_G.render.BLEND_SRC_ALPHA, _G.render.BLEND_ONE_MINUS_SRC_ALPHA);
+  _G.render.disable_state(_G.render.STATE_CULL_FACE);
+  local zoom = __renderer_RenderHelper.instance.zoom;
+  local tmp = _G.math.floor(_self.currentSize.width / zoom);
+  _self.projectedSize.width = tmp;
+  local tmp = _G.math.floor(_self.currentSize.height / zoom);
+  _self.projectedSize.height = tmp;
+  local self1 = _self.projectedSize.width;
+  local tmp = _G.render.get_width();
+  _self.offset.x = -(self1 - tmp) * 0.5;
+  local self1 = _self.projectedSize.height;
+  local tmp = _G.render.get_height();
+  _self.offset.y = -(self1 - tmp) * 0.5;
+  _G.render.set_projection(_G.vmath.matrix4_orthographic(_self.offset.x, _self.offset.x + _self.projectedSize.width, _self.offset.y, _self.offset.y + _self.projectedSize.height, -1, 1));
+  __renderer_RenderHelper.instance.xOffset = _self.offset.x;
+  __renderer_RenderHelper.instance.yOffset = _self.offset.y;
+  __renderer_RenderHelper.instance.viewWidth = _hx_funcToField(_self.projectedSize.width);
+  __renderer_RenderHelper.instance.viewHeight = _hx_funcToField(_self.projectedSize.height);
+  _G.render.draw(_self.tilePred);
+  _G.render.draw(_self.particlePred);
+  _G.render.draw_debug3d();
+  _G.render.set_view(_G.vmath.matrix4());
+  _G.render.set_projection(_G.vmath.matrix4_orthographic(0, _self.currentSize.width, 0, _self.currentSize.height, -1, 1));
+  _G.render.enable_state(_G.render.STATE_STENCIL_TEST);
+  _G.render.draw(_self.guiPred);
+  _G.render.draw(_self.textPred);
+  _G.render.disable_state(_G.render.STATE_STENCIL_TEST);
+  _G.render.set_depth_mask(false);
+end
+__renderer_Renderer.prototype.on_message = function(self,_self,message_id,message,sender) 
+  if (message_id) == __defold_RenderMessages.clear_color then 
+    _self.clearColor = _hx_funcToField(message.color);
+  elseif (message_id) == __defold_RenderMessages.set_view_projection then 
+    _self.view = _hx_funcToField(message.view); end;
+end
+__renderer_Renderer.__super__ = __defold_support_RenderScript
+setmetatable(__renderer_Renderer.prototype,{__index=__defold_support_RenderScript.prototype})
 
 __defold_support_Init.new = {}
 __defold_support_Init.init = function(exports) 
@@ -860,9 +1010,55 @@ __defold_support_Init.init = function(exports)
   exports.LevelTest_init = function(_self) 
     script:init(_self);
   end;
+  exports.LevelTest_final_ = function(_self) 
+    script:final_(_self);
+  end;
   exports.LevelTest_on_input = function(_self,action_id,action) 
     do return script:on_input(_self, action_id, action) end;
   end;
+  local script = __renderer_Renderer.new();
+  exports.renderer_Renderer_init = function(_self) 
+    script:init(_self);
+  end;
+  exports.renderer_Renderer_update = function(_self,dt) 
+    script:update(_self, dt);
+  end;
+  exports.renderer_Renderer_on_message = function(_self,message_id,message,sender) 
+    script:on_message(_self, message_id, message, sender);
+  end;
+  local script = Camera.new();
+  exports.Camera_init = function(_self) 
+    script:init(_self);
+  end;
+  exports.Camera_final_ = function(_self) 
+    script:final_(_self);
+  end;
+  exports.Camera_on_input = function(_self,action_id,action) 
+    do return script:on_input(_self, action_id, action) end;
+  end;
+end
+
+__haxe_Log.new = {}
+__haxe_Log.formatOutput = function(v,infos) 
+  local str = Std.string(v);
+  if (infos == nil) then 
+    do return str end;
+  end;
+  local pstr = Std.string(Std.string(infos.fileName) .. Std.string(":")) .. Std.string(infos.lineNumber);
+  if (infos.customParams ~= nil) then 
+    local _g = 0;
+    local _g1 = infos.customParams;
+    while (_g < _g1.length) do 
+      local v = _g1[_g];
+      _g = _g + 1;
+      str = Std.string(str) .. Std.string((Std.string(", ") .. Std.string(Std.string(v))));
+    end;
+  end;
+  do return Std.string(Std.string(pstr) .. Std.string(": ")) .. Std.string(str) end;
+end
+__haxe_Log.trace = function(v,infos) 
+  local str = __haxe_Log.formatOutput(v, infos);
+  _hx_print(str);
 end
 
 __haxe_iterators_ArrayIterator.new = function(array) 
@@ -896,6 +1092,29 @@ end
 __haxe_iterators_ArrayKeyValueIterator.super = function(self,array) 
   self.array = array;
 end
+
+__renderer_RenderHelper.new = function() 
+  local self = _hx_new(__renderer_RenderHelper.prototype)
+  __renderer_RenderHelper.super(self)
+  return self
+end
+__renderer_RenderHelper.super = function(self) 
+  self.viewHeight = 0.0;
+  self.viewWidth = 0.0;
+  self.zoom = 1.0;
+  self.yOffset = 0.0;
+  self.xOffset = 0.0;
+end
+__renderer_RenderHelper.prototype = _hx_e();
+__renderer_RenderHelper.prototype.screenToWorld = function(self,x,y,out) 
+  if (out ~= nil) then 
+    out.x = self.xOffset + (x / self.zoom);
+    out.y = self.yOffset + (y / self.zoom);
+    out.z = 0;
+    do return out end;
+  end;
+  do return _G.vmath.vector3(self.xOffset + (x / self.zoom), self.yOffset + (y / self.zoom), 0) end
+end
 if _hx_bit_raw then
     _hx_bit_clamp = function(v)
     if v <= 2147483647 and v >= -2147483648 then
@@ -928,11 +1147,21 @@ _hx_array_mt.__index = Array.prototype
 local _hx_static_init = function()
   
   _hxdefold_ = _hxdefold_ or {}
-  __defold_support_Init.init(_hxdefold_);LevelTest.TILE_SIZE = 32;
+  __defold_support_Init.init(_hxdefold_);Camera.WHEEL_DOWN = _G.hash("wheel_down");
+  
+  Camera.WHEEL_UP = _G.hash("wheel_up");
+  
+  Camera.MIN_ZOOM = 0.5;
+  
+  Camera.MAX_ZOOM = 2;
+  
+  LevelTest.TILE_SIZE = 32;
   
   LevelTest.TOUCH = _G.hash("touch");
   
   Messages.changeCollection = _G.hash("changeCollection");
+  
+  __defold_CameraMessages.acquire_camera_focus = _G.hash("acquire_camera_focus");
   
   __defold_CollectionproxyMessages.enable = _G.hash("enable");
   
@@ -950,6 +1179,12 @@ local _hx_static_init = function()
   
   __defold_GoMessages.release_input_focus = _G.hash("release_input_focus");
   
+  __defold_RenderMessages.clear_color = _G.hash("clear_color");
+  
+  __defold_RenderMessages.set_view_projection = _G.hash("set_view_projection");
+  
+  __renderer_RenderHelper.instance = __renderer_RenderHelper.new();
+  
   
 end
 
@@ -962,5 +1197,7 @@ _hx_funcToField = function(f)
     return f
   end
 end
+
+_hx_print = print or (function() end)
 
 _hx_static_init();
