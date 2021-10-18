@@ -27,6 +27,13 @@ layers {
   cell {
     x: 3
     y: 0
+    tile: 4
+    h_flip: 0
+    v_flip: 0
+  }
+  cell {
+    x: 4
+    y: 0
     tile: 3
     h_flip: 0
     v_flip: 0

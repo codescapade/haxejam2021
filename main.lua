@@ -204,6 +204,9 @@ local LevelTest = _hx_e()
 local Loader = _hx_e()
 local Math = _hx_e()
 local Messages = _hx_e()
+__astar_Node = _hx_e()
+__astar_PathFinding = _hx_e()
+__astar_Point = _hx_e()
 __defold_CameraMessages = _hx_e()
 __defold_CollectionproxyMessages = _hx_e()
 __defold_GoMessages = _hx_e()
@@ -212,6 +215,8 @@ __defold_support_RenderScript = _hx_e()
 __renderer_Renderer = _hx_e()
 __defold_support_Init = _hx_e()
 __haxe_Log = _hx_e()
+__haxe_ds_List = _hx_e()
+__haxe_ds__List_ListNode = _hx_e()
 __haxe_iterators_ArrayIterator = _hx_e()
 __haxe_iterators_ArrayKeyValueIterator = _hx_e()
 __renderer_RenderHelper = _hx_e()
@@ -548,7 +553,6 @@ Camera.super = function(self)
 end
 Camera.toWorld = function(x,y) 
   local pos = _G.go.get_position("cam");
-  __haxe_Log.trace(Std.string("cam x: ") .. Std.string(pos.x), _hx_o({__fields__={fileName=true,lineNumber=true,className=true,methodName=true},fileName="src/Camera.hx",lineNumber=26,className="Camera",methodName="toWorld"}));
   local worldPos = __renderer_RenderHelper.instance:screenToWorld(x, y);
   do return _G.vmath.vector3(worldPos.x + pos.x, worldPos.y + pos.y, 0) end;
 end
@@ -780,54 +784,90 @@ end
 LevelTest.prototype = _hx_e();
 LevelTest.prototype.init = function(self,_self) 
   _G.msg.post(".", __defold_GoMessages.acquire_input_focus);
+  local grid = _hx_tab_array({}, 0);
   local _hx_1_bounds_x, _hx_1_bounds_y, _hx_1_bounds_w, _hx_1_bounds_h = _G.tilemap.get_bounds("#map");
   local _g = 3;
   local _g1 = _hx_1_bounds_h + 1;
   while (_g < _g1) do 
     _g = _g + 1;
     local y = _g - 1;
+    local row = _hx_tab_array({}, 0);
     local _g = 3;
     local _g1 = _hx_1_bounds_w + 1;
     while (_g < _g1) do 
       _g = _g + 1;
+      row:push(1);
       _G.tilemap.set_tile("#map", "layer1", _g - 1, y, 1);
     end;
+    grid:push(row);
   end;
+  _self.pathfinding = __astar_PathFinding.new(grid, LevelTest.walkable);
   _self.currentTileIndex = 0;
+  _self.start = nil;
+  _self.goal = nil;
 end
 LevelTest.prototype.final_ = function(self,_self) 
   _G.msg.post(".", __defold_GoMessages.release_input_focus);
 end
 LevelTest.prototype.on_input = function(self,_self,action_id,action) 
-  if (action_id == LevelTest.TOUCH) then 
-    if (action.pressed) then 
-      _self.touchDown = true;
-    else
-      if (action.released) then 
-        _self.touchDown = false;
+  if (not action.pressed) then 
+    do return false end;
+  end;
+  if (((_self.start ~= nil) and (_self.goal ~= nil)) and ((_self.currentTileIndex == 4) or (_self.currentTileIndex == 5))) then 
+    local _hx_1_bounds_x, _hx_1_bounds_y, _hx_1_bounds_w, _hx_1_bounds_h = _G.tilemap.get_bounds("#map");
+    local _g = 3;
+    local _g1 = _hx_1_bounds_h + 1;
+    while (_g < _g1) do 
+      _g = _g + 1;
+      local y = _g - 1;
+      local _g = 3;
+      local _g1 = _hx_1_bounds_w + 1;
+      while (_g < _g1) do 
+        _g = _g + 1;
+        local x = _g - 1;
+        if (_G.tilemap.get_tile("#map", "layer1", x, y) > 2) then 
+          _G.tilemap.set_tile("#map", "layer1", x, y, 1);
+        end;
       end;
     end;
-  end;
-  if (not _self.touchDown) then 
-    do return true end;
+    _self.start = nil;
+    _self.goal = nil;
   end;
   local worldPos = Camera.toWorld(action.x, action.y);
-  __haxe_Log.trace(worldPos.x, _hx_o({__fields__={fileName=true,lineNumber=true,className=true,methodName=true},fileName="src/LevelTest.hx",lineNumber=52,className="LevelTest",methodName="on_input"}));
   local x = _G.math.ceil(worldPos.x / LevelTest.TILE_SIZE);
   local y = _G.math.ceil(worldPos.y / LevelTest.TILE_SIZE);
   if (y == 1) then 
     _self.currentTileIndex = _G.tilemap.get_tile("#map", "layer1", x, y);
   else
     if (self:inBounds(x, y)) then 
+      if (_self.currentTileIndex == 4) then 
+        _self.start = __astar_Point.new(x - 3, y - 3);
+      else
+        if (_self.currentTileIndex == 5) then 
+          _self.goal = __astar_Point.new(x - 3, y - 3);
+        end;
+      end;
+      _self.pathfinding:updateTile(x - 3, y - 3, _self.currentTileIndex);
       _G.tilemap.set_tile("#map", "layer1", x, y, _self.currentTileIndex);
+    end;
+  end;
+  if ((_self.start ~= nil) and (_self.goal ~= nil)) then 
+    local path = _self.pathfinding:findPath(_self.start, _self.goal);
+    __haxe_Log.trace(path.length, _hx_o({__fields__={fileName=true,lineNumber=true,className=true,methodName=true},fileName="src/LevelTest.hx",lineNumber=88,className="LevelTest",methodName="on_input"}));
+    local _g = 1;
+    local _g1 = path.length - 1;
+    while (_g < _g1) do 
+      _g = _g + 1;
+      local i = _g - 1;
+      _G.tilemap.set_tile("#map", "layer1", path[i].x + 3, path[i].y + 3, 3);
     end;
   end;
   do return false end
 end
 LevelTest.prototype.inBounds = function(self,x,y) 
   local _hx_1_bounds_x, _hx_1_bounds_y, _hx_1_bounds_w, _hx_1_bounds_h = _G.tilemap.get_bounds("#map");
-  if (((x > 2) and (x < _hx_1_bounds_w)) and (y > 3)) then 
-    do return y < _hx_1_bounds_h end;
+  if (((x > 1) and (x <= _hx_1_bounds_w)) and (y > 2)) then 
+    do return y <= _hx_1_bounds_h end;
   else
     do return false end;
   end;
@@ -893,6 +933,184 @@ Math.min = function(a,b)
 end
 
 Messages.new = {}
+
+__astar_Node.new = function(x,y,tileIndex,weight) 
+  local self = _hx_new(__astar_Node.prototype)
+  __astar_Node.super(self,x,y,tileIndex,weight)
+  return self
+end
+__astar_Node.super = function(self,x,y,tileIndex,weight) 
+  if (weight == nil) then 
+    weight = 1;
+  end;
+  self.x = x;
+  self.y = y;
+  self.tileIndex = tileIndex;
+  self.weight = weight;
+end
+__astar_Node.prototype = _hx_e();
+__astar_Node.prototype.equalsXY = function(self,other) 
+  if (self.x == other.x) then 
+    do return self.y == other.y end;
+  else
+    do return false end;
+  end;
+end
+
+__astar_PathFinding.new = function(grid,walkableTiles) 
+  local self = _hx_new(__astar_PathFinding.prototype)
+  __astar_PathFinding.super(self,grid,walkableTiles)
+  return self
+end
+__astar_PathFinding.super = function(self,grid,walkableTiles) 
+  self.directions = _hx_tab_array({[0]=__astar_Point.new(-1, 0), __astar_Point.new(1, 0), __astar_Point.new(0, -1), __astar_Point.new(0, 1)}, 4);
+  self.pointsToAvoid = _hx_tab_array({}, 0);
+  local _g = 0;
+  local _g1 = grid.length;
+  while (_g < _g1) do 
+    _g = _g + 1;
+    local row = _hx_tab_array({}, 0);
+    local _g = 0;
+    local _g1 = grid[0].length;
+    while (_g < _g1) do 
+      _g = _g + 1;
+      row:push(0);
+    end;
+    self.pointsToAvoid:push(row);
+  end;
+  self.walkableTiles = walkableTiles;
+  self:updateGrid(grid);
+  self.queue = __haxe_ds_List.new();
+end
+__astar_PathFinding.prototype = _hx_e();
+__astar_PathFinding.prototype.updateGrid = function(self,grid) 
+  self.grid = _hx_tab_array({}, 0);
+  local _g = 0;
+  local _g1 = grid.length;
+  while (_g < _g1) do 
+    _g = _g + 1;
+    local y = _g - 1;
+    local row = _hx_tab_array({}, 0);
+    local _g = 0;
+    local _g1 = grid[0].length;
+    while (_g < _g1) do 
+      _g = _g + 1;
+      local x = _g - 1;
+      row:push(__astar_Node.new(x, y, grid[y][x]));
+    end;
+    self.grid:push(row);
+  end;
+end
+__astar_PathFinding.prototype.updateTile = function(self,x,y,index) 
+  __haxe_Log.trace(Std.string(Std.string(Std.string(Std.string(Std.string("x ") .. Std.string(x)) .. Std.string(", y: ")) .. Std.string(y)) .. Std.string(", index: ")) .. Std.string(index), _hx_o({__fields__={fileName=true,lineNumber=true,className=true,methodName=true},fileName="src/astar/PathFinding.hx",lineNumber=44,className="astar.PathFinding",methodName="updateTile"}));
+  self.grid[y][x] = __astar_Node.new(x, y, index);
+end
+__astar_PathFinding.prototype.findPath = function(self,start,goal) 
+  if (not self:isWalkable(start.x, start.y) or not self:isWalkable(goal.x, goal.y)) then 
+    do return _hx_tab_array({}, 0) end;
+  end;
+  local _g = 0;
+  local _g1 = self.grid.length;
+  while (_g < _g1) do 
+    _g = _g + 1;
+    local y = _g - 1;
+    local _g = 0;
+    local _g1 = self.grid[0].length;
+    while (_g < _g1) do 
+      _g = _g + 1;
+      local x = _g - 1;
+      self.grid[y][x].parent = nil;
+      self.grid[y][x].value = 0;
+      self.grid[y][x].cost = 0;
+    end;
+  end;
+  local startNode = self.grid[start.y][start.x];
+  local goalNode = self.grid[goal.y][goal.x];
+  self.queue:clear();
+  self.queue:add(startNode);
+  while (self.queue.length > 0) do 
+    local currentNode = self.queue:first();
+    self.queue:remove(currentNode);
+    local _g = 0;
+    local _g1 = self:getNeighbors(currentNode);
+    while (_g < _g1.length) do 
+      local neighbor = _g1[_g];
+      _g = _g + 1;
+      local newCost = currentNode.cost + neighbor.weight;
+      if ((neighbor.parent == nil) or (newCost < neighbor.cost)) then 
+        neighbor.cost = newCost;
+        neighbor.value = newCost + self:heuristics(goalNode, neighbor);
+        neighbor.parent = currentNode;
+        self.queue:add(neighbor);
+      end;
+    end;
+    if (currentNode:equalsXY(goalNode)) then 
+      break;
+    end;
+  end;
+  do return self:reconstructPath(startNode, goalNode) end
+end
+__astar_PathFinding.prototype.isWalkable = function(self,x,y) 
+  do return self.walkableTiles:contains(self.grid[y][x].tileIndex) end
+end
+__astar_PathFinding.prototype.getNeighbors = function(self,node) 
+  local neighbors = _hx_tab_array({}, 0);
+  local _g = 0;
+  local _g1 = self.directions;
+  while (_g < _g1.length) do 
+    local direction = _g1[_g];
+    _g = _g + 1;
+    local x = direction.x + node.x;
+    local y = direction.y + node.y;
+    if (self:inBounds(x, y)) then 
+      local neighbor = self.grid[y][x];
+      if (((neighbor.value == 0) and self:isWalkable(x, y)) and (self.pointsToAvoid[y][x] == 0)) then 
+        neighbors:push(neighbor);
+      end;
+    end;
+  end;
+  do return neighbors end
+end
+__astar_PathFinding.prototype.reconstructPath = function(self,start,goal) 
+  local path = _hx_tab_array({}, 0);
+  local current = goal;
+  path:push(__astar_Point.new(goal.x, goal.y));
+  while (not current:equalsXY(start)) do 
+    current = current.parent;
+    if (current ~= nil) then 
+      path:push(__astar_Point.new(current.x, current.y));
+    else
+      break;
+    end;
+  end;
+  do return path end
+end
+__astar_PathFinding.prototype.inBounds = function(self,x,y) 
+  if (((x >= 0) and (x < self.grid[0].length)) and (y >= 0)) then 
+    do return y < self.grid.length end;
+  else
+    do return false end;
+  end;
+end
+__astar_PathFinding.prototype.heuristics = function(self,current,target) 
+  do return Std.int(_G.math.abs(current.x - target.x) + _G.math.abs(current.y - target.y)) end
+end
+
+__astar_Point.new = function(x,y) 
+  local self = _hx_new()
+  __astar_Point.super(self,x,y)
+  return self
+end
+__astar_Point.super = function(self,x,y) 
+  if (y == nil) then 
+    y = 0;
+  end;
+  if (x == nil) then 
+    x = 0;
+  end;
+  self.x = x;
+  self.y = y;
+end
 
 __defold_CameraMessages.new = {}
 
@@ -1061,6 +1279,70 @@ __haxe_Log.trace = function(v,infos)
   _hx_print(str);
 end
 
+__haxe_ds_List.new = function() 
+  local self = _hx_new(__haxe_ds_List.prototype)
+  __haxe_ds_List.super(self)
+  return self
+end
+__haxe_ds_List.super = function(self) 
+  self.length = 0;
+end
+__haxe_ds_List.prototype = _hx_e();
+__haxe_ds_List.prototype.add = function(self,item) 
+  local next = nil;
+  local x = __haxe_ds__List_ListNode.new(item, next);
+  if (self.h == nil) then 
+    self.h = x;
+  else
+    self.q.next = x;
+  end;
+  self.q = x;
+  self.length = self.length + 1;
+end
+__haxe_ds_List.prototype.first = function(self) 
+  if (self.h == nil) then 
+    do return nil end;
+  else
+    do return self.h.item end;
+  end;
+end
+__haxe_ds_List.prototype.clear = function(self) 
+  self.h = nil;
+  self.q = nil;
+  self.length = 0;
+end
+__haxe_ds_List.prototype.remove = function(self,v) 
+  local prev = nil;
+  local l = self.h;
+  while (l ~= nil) do 
+    if (l.item == v) then 
+      if (prev == nil) then 
+        self.h = l.next;
+      else
+        prev.next = l.next;
+      end;
+      if (self.q == l) then 
+        self.q = prev;
+      end;
+      self.length = self.length - 1;
+      do return true end;
+    end;
+    prev = l;
+    l = l.next;
+  end;
+  do return false end
+end
+
+__haxe_ds__List_ListNode.new = function(item,next) 
+  local self = _hx_new()
+  __haxe_ds__List_ListNode.super(self,item,next)
+  return self
+end
+__haxe_ds__List_ListNode.super = function(self,item,next) 
+  self.item = item;
+  self.next = next;
+end
+
 __haxe_iterators_ArrayIterator.new = function(array) 
   local self = _hx_new(__haxe_iterators_ArrayIterator.prototype)
   __haxe_iterators_ArrayIterator.super(self,array)
@@ -1157,7 +1439,7 @@ local _hx_static_init = function()
   
   LevelTest.TILE_SIZE = 32;
   
-  LevelTest.TOUCH = _G.hash("touch");
+  LevelTest.walkable = _hx_tab_array({[0]=1, 3, 4, 5}, 4);
   
   Messages.changeCollection = _G.hash("changeCollection");
   
