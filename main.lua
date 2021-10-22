@@ -211,12 +211,13 @@ __defold_CameraMessages = _hx_e()
 __defold_CollectionproxyMessages = _hx_e()
 __defold_GoMessages = _hx_e()
 __defold_RenderMessages = _hx_e()
+__defold_support_GuiScript = _hx_e()
+__gui_GameGui = _hx_e()
 __defold_support_RenderScript = _hx_e()
 __renderer_Renderer = _hx_e()
 __defold_support_Init = _hx_e()
 __haxe_Log = _hx_e()
 __haxe_ds_List = _hx_e()
-__haxe_ds__List_ListNode = _hx_e()
 __haxe_iterators_ArrayIterator = _hx_e()
 __haxe_iterators_ArrayKeyValueIterator = _hx_e()
 __renderer_RenderHelper = _hx_e()
@@ -809,68 +810,29 @@ end
 LevelTest.prototype.final_ = function(self,_self) 
   _G.msg.post(".", __defold_GoMessages.release_input_focus);
 end
+LevelTest.prototype.on_message = function(self,_self,message_id,message,sender) 
+  if (message_id) == Messages.buildBase then 
+    _self.newBuilding = _G.factory.create("/factories#basefactory", _G.vmath.vector3(0, 64, 0.1));
+    _self.base = true;
+  elseif (message_id) == Messages.buildTower then 
+    _self.newBuilding = _G.factory.create("/factories#towerfactory", _G.vmath.vector3(0, 0, 0.1)); end;
+end
 LevelTest.prototype.on_input = function(self,_self,action_id,action) 
-  if (not action.pressed) then 
-    do return false end;
-  end;
-  if (((_self.start ~= nil) and (_self.goal ~= nil)) and ((_self.currentTileIndex == 4) or (_self.currentTileIndex == 5))) then 
-    local _hx_1_bounds_x, _hx_1_bounds_y, _hx_1_bounds_w, _hx_1_bounds_h = _G.tilemap.get_bounds("#map");
-    local _g = 3;
-    local _g1 = _hx_1_bounds_h + 1;
-    while (_g < _g1) do 
-      _g = _g + 1;
-      local y = _g - 1;
-      local _g = 3;
-      local _g1 = _hx_1_bounds_w + 1;
-      while (_g < _g1) do 
-        _g = _g + 1;
-        local x = _g - 1;
-        if (_G.tilemap.get_tile("#map", "layer1", x, y) > 2) then 
-          _G.tilemap.set_tile("#map", "layer1", x, y, 1);
-        end;
-      end;
-    end;
-    _self.start = nil;
-    _self.goal = nil;
-  end;
-  local worldPos = Camera.toWorld(action.x, action.y);
-  local x = _G.math.ceil(worldPos.x / LevelTest.TILE_SIZE);
-  local y = _G.math.ceil(worldPos.y / LevelTest.TILE_SIZE);
-  if (y == 1) then 
-    _self.currentTileIndex = _G.tilemap.get_tile("#map", "layer1", x, y);
-  else
-    if (self:inBounds(x, y)) then 
-      if (_self.currentTileIndex == 4) then 
-        _self.start = __astar_Point.new(x - 3, y - 3);
-      else
-        if (_self.currentTileIndex == 5) then 
-          _self.goal = __astar_Point.new(x - 3, y - 3);
-        end;
-      end;
-      _self.pathfinding:updateTile(x - 3, y - 3, _self.currentTileIndex);
-      _G.tilemap.set_tile("#map", "layer1", x, y, _self.currentTileIndex);
+  if ((action_id == nil) and (_self.newBuilding ~= nil)) then 
+    local worldPos = Camera.toWorld(action.x, action.y);
+    local x = _G.math.ceil(worldPos.x / LevelTest.TILE_SIZE);
+    local y = _G.math.ceil(worldPos.y / LevelTest.TILE_SIZE);
+    if (_self.base) then 
+      _G.go.set_position(_G.vmath.vector3(x * 32, y * 32, 0.1), _self.newBuilding);
+    else
+      _G.go.set_position(_G.vmath.vector3((x * 32) - 16, (y * 32) - 16, 0.1), _self.newBuilding);
     end;
   end;
-  if ((_self.start ~= nil) and (_self.goal ~= nil)) then 
-    local path = _self.pathfinding:findPath(_self.start, _self.goal);
-    __haxe_Log.trace(path.length, _hx_o({__fields__={fileName=true,lineNumber=true,className=true,methodName=true},fileName="src/LevelTest.hx",lineNumber=88,className="LevelTest",methodName="on_input"}));
-    local _g = 1;
-    local _g1 = path.length - 1;
-    while (_g < _g1) do 
-      _g = _g + 1;
-      local i = _g - 1;
-      _G.tilemap.set_tile("#map", "layer1", path[i].x + 3, path[i].y + 3, 3);
-    end;
+  if (((action_id == LevelTest.TOUCH) and action.pressed) and (_self.newBuilding ~= nil)) then 
+    _self.newBuilding = nil;
+    _self.base = false;
   end;
   do return false end
-end
-LevelTest.prototype.inBounds = function(self,x,y) 
-  local _hx_1_bounds_x, _hx_1_bounds_y, _hx_1_bounds_w, _hx_1_bounds_h = _G.tilemap.get_bounds("#map");
-  if (((x > 1) and (x <= _hx_1_bounds_w)) and (y > 2)) then 
-    do return y <= _hx_1_bounds_h end;
-  else
-    do return false end;
-  end;
 end
 LevelTest.__super__ = __defold_support_Script
 setmetatable(LevelTest.prototype,{__index=__defold_support_Script.prototype})
@@ -935,7 +897,7 @@ end
 Messages.new = {}
 
 __astar_Node.new = function(x,y,tileIndex,weight) 
-  local self = _hx_new(__astar_Node.prototype)
+  local self = _hx_new()
   __astar_Node.super(self,x,y,tileIndex,weight)
   return self
 end
@@ -948,14 +910,6 @@ __astar_Node.super = function(self,x,y,tileIndex,weight)
   self.tileIndex = tileIndex;
   self.weight = weight;
 end
-__astar_Node.prototype = _hx_e();
-__astar_Node.prototype.equalsXY = function(self,other) 
-  if (self.x == other.x) then 
-    do return self.y == other.y end;
-  else
-    do return false end;
-  end;
-end
 
 __astar_PathFinding.new = function(grid,walkableTiles) 
   local self = _hx_new(__astar_PathFinding.prototype)
@@ -963,7 +917,6 @@ __astar_PathFinding.new = function(grid,walkableTiles)
   return self
 end
 __astar_PathFinding.super = function(self,grid,walkableTiles) 
-  self.directions = _hx_tab_array({[0]=__astar_Point.new(-1, 0), __astar_Point.new(1, 0), __astar_Point.new(0, -1), __astar_Point.new(0, 1)}, 4);
   self.pointsToAvoid = _hx_tab_array({}, 0);
   local _g = 0;
   local _g1 = grid.length;
@@ -1001,116 +954,8 @@ __astar_PathFinding.prototype.updateGrid = function(self,grid)
     self.grid:push(row);
   end;
 end
-__astar_PathFinding.prototype.updateTile = function(self,x,y,index) 
-  __haxe_Log.trace(Std.string(Std.string(Std.string(Std.string(Std.string("x ") .. Std.string(x)) .. Std.string(", y: ")) .. Std.string(y)) .. Std.string(", index: ")) .. Std.string(index), _hx_o({__fields__={fileName=true,lineNumber=true,className=true,methodName=true},fileName="src/astar/PathFinding.hx",lineNumber=44,className="astar.PathFinding",methodName="updateTile"}));
-  self.grid[y][x] = __astar_Node.new(x, y, index);
-end
-__astar_PathFinding.prototype.findPath = function(self,start,goal) 
-  if (not self:isWalkable(start.x, start.y) or not self:isWalkable(goal.x, goal.y)) then 
-    do return _hx_tab_array({}, 0) end;
-  end;
-  local _g = 0;
-  local _g1 = self.grid.length;
-  while (_g < _g1) do 
-    _g = _g + 1;
-    local y = _g - 1;
-    local _g = 0;
-    local _g1 = self.grid[0].length;
-    while (_g < _g1) do 
-      _g = _g + 1;
-      local x = _g - 1;
-      self.grid[y][x].parent = nil;
-      self.grid[y][x].value = 0;
-      self.grid[y][x].cost = 0;
-    end;
-  end;
-  local startNode = self.grid[start.y][start.x];
-  local goalNode = self.grid[goal.y][goal.x];
-  self.queue:clear();
-  self.queue:add(startNode);
-  while (self.queue.length > 0) do 
-    local currentNode = self.queue:first();
-    self.queue:remove(currentNode);
-    local _g = 0;
-    local _g1 = self:getNeighbors(currentNode);
-    while (_g < _g1.length) do 
-      local neighbor = _g1[_g];
-      _g = _g + 1;
-      local newCost = currentNode.cost + neighbor.weight;
-      if ((neighbor.parent == nil) or (newCost < neighbor.cost)) then 
-        neighbor.cost = newCost;
-        neighbor.value = newCost + self:heuristics(goalNode, neighbor);
-        neighbor.parent = currentNode;
-        self.queue:add(neighbor);
-      end;
-    end;
-    if (currentNode:equalsXY(goalNode)) then 
-      break;
-    end;
-  end;
-  do return self:reconstructPath(startNode, goalNode) end
-end
-__astar_PathFinding.prototype.isWalkable = function(self,x,y) 
-  do return self.walkableTiles:contains(self.grid[y][x].tileIndex) end
-end
-__astar_PathFinding.prototype.getNeighbors = function(self,node) 
-  local neighbors = _hx_tab_array({}, 0);
-  local _g = 0;
-  local _g1 = self.directions;
-  while (_g < _g1.length) do 
-    local direction = _g1[_g];
-    _g = _g + 1;
-    local x = direction.x + node.x;
-    local y = direction.y + node.y;
-    if (self:inBounds(x, y)) then 
-      local neighbor = self.grid[y][x];
-      if (((neighbor.value == 0) and self:isWalkable(x, y)) and (self.pointsToAvoid[y][x] == 0)) then 
-        neighbors:push(neighbor);
-      end;
-    end;
-  end;
-  do return neighbors end
-end
-__astar_PathFinding.prototype.reconstructPath = function(self,start,goal) 
-  local path = _hx_tab_array({}, 0);
-  local current = goal;
-  path:push(__astar_Point.new(goal.x, goal.y));
-  while (not current:equalsXY(start)) do 
-    current = current.parent;
-    if (current ~= nil) then 
-      path:push(__astar_Point.new(current.x, current.y));
-    else
-      break;
-    end;
-  end;
-  do return path end
-end
-__astar_PathFinding.prototype.inBounds = function(self,x,y) 
-  if (((x >= 0) and (x < self.grid[0].length)) and (y >= 0)) then 
-    do return y < self.grid.length end;
-  else
-    do return false end;
-  end;
-end
-__astar_PathFinding.prototype.heuristics = function(self,current,target) 
-  do return Std.int(_G.math.abs(current.x - target.x) + _G.math.abs(current.y - target.y)) end
-end
 
-__astar_Point.new = function(x,y) 
-  local self = _hx_new()
-  __astar_Point.super(self,x,y)
-  return self
-end
-__astar_Point.super = function(self,x,y) 
-  if (y == nil) then 
-    y = 0;
-  end;
-  if (x == nil) then 
-    x = 0;
-  end;
-  self.x = x;
-  self.y = y;
-end
+__astar_Point.new = {}
 
 __defold_CameraMessages.new = {}
 
@@ -1119,6 +964,61 @@ __defold_CollectionproxyMessages.new = {}
 __defold_GoMessages.new = {}
 
 __defold_RenderMessages.new = {}
+
+__defold_support_GuiScript.new = function() 
+  local self = _hx_new()
+  __defold_support_GuiScript.super(self)
+  return self
+end
+__defold_support_GuiScript.super = function(self) 
+end
+
+__gui_GameGui.new = function() 
+  local self = _hx_new(__gui_GameGui.prototype)
+  __gui_GameGui.super(self)
+  return self
+end
+__gui_GameGui.super = function(self) 
+  __defold_support_GuiScript.super(self);
+end
+__gui_GameGui.prototype = _hx_e();
+__gui_GameGui.prototype.init = function(self,_self) 
+  _G.msg.post(".", __defold_GoMessages.acquire_input_focus);
+end
+__gui_GameGui.prototype.final_ = function(self,_self) 
+  _G.msg.post(".", __defold_GoMessages.release_input_focus);
+end
+__gui_GameGui.prototype.on_input = function(self,_self,action_id,action) 
+  if ((action_id == __gui_GameGui.TOUCH) and action.pressed) then 
+    local baseButton = _G.gui.get_node("base");
+    local towerButton = _G.gui.get_node("tower");
+    local mine = _G.gui.get_node("mine");
+    local barracks = _G.gui.get_node("barracks");
+    local wall = _G.gui.get_node("wall");
+    if (_G.gui.pick_node(baseButton, action.x, action.y)) then 
+      _G.msg.post("/map", Messages.buildBase);
+    else
+      if (_G.gui.pick_node(towerButton, action.x, action.y)) then 
+        _G.msg.post("/map", Messages.buildTower);
+      else
+        if (_G.gui.pick_node(mine, action.x, action.y)) then 
+          _G.msg.post("/map", Messages.buildMine);
+        else
+          if (_G.gui.pick_node(barracks, action.x, action.y)) then 
+            _G.msg.post("/map", Messages.buildBarracks);
+          else
+            if (_G.gui.pick_node(wall, action.x, action.y)) then 
+              __haxe_Log.trace("pressed wall", _hx_o({__fields__={fileName=true,lineNumber=true,className=true,methodName=true},fileName="src/gui/GameGui.hx",lineNumber=46,className="gui.GameGui",methodName="on_input"}));
+            end;
+          end;
+        end;
+      end;
+    end;
+  end;
+  do return false end
+end
+__gui_GameGui.__super__ = __defold_support_GuiScript
+setmetatable(__gui_GameGui.prototype,{__index=__defold_support_GuiScript.prototype})
 
 __defold_support_RenderScript.new = function() 
   local self = _hx_new()
@@ -1224,12 +1124,25 @@ __defold_support_Init.init = function(exports)
   exports.Loader_on_message = function(_self,message_id,message,sender) 
     script:on_message(_self, message_id, message, sender);
   end;
+  local script = __gui_GameGui.new();
+  exports.gui_GameGui_init = function(_self) 
+    script:init(_self);
+  end;
+  exports.gui_GameGui_final_ = function(_self) 
+    script:final_(_self);
+  end;
+  exports.gui_GameGui_on_input = function(_self,action_id,action) 
+    do return script:on_input(_self, action_id, action) end;
+  end;
   local script = LevelTest.new();
   exports.LevelTest_init = function(_self) 
     script:init(_self);
   end;
   exports.LevelTest_final_ = function(_self) 
     script:final_(_self);
+  end;
+  exports.LevelTest_on_message = function(_self,message_id,message,sender) 
+    script:on_message(_self, message_id, message, sender);
   end;
   exports.LevelTest_on_input = function(_self,action_id,action) 
     do return script:on_input(_self, action_id, action) end;
@@ -1280,67 +1193,12 @@ __haxe_Log.trace = function(v,infos)
 end
 
 __haxe_ds_List.new = function() 
-  local self = _hx_new(__haxe_ds_List.prototype)
+  local self = _hx_new()
   __haxe_ds_List.super(self)
   return self
 end
 __haxe_ds_List.super = function(self) 
   self.length = 0;
-end
-__haxe_ds_List.prototype = _hx_e();
-__haxe_ds_List.prototype.add = function(self,item) 
-  local next = nil;
-  local x = __haxe_ds__List_ListNode.new(item, next);
-  if (self.h == nil) then 
-    self.h = x;
-  else
-    self.q.next = x;
-  end;
-  self.q = x;
-  self.length = self.length + 1;
-end
-__haxe_ds_List.prototype.first = function(self) 
-  if (self.h == nil) then 
-    do return nil end;
-  else
-    do return self.h.item end;
-  end;
-end
-__haxe_ds_List.prototype.clear = function(self) 
-  self.h = nil;
-  self.q = nil;
-  self.length = 0;
-end
-__haxe_ds_List.prototype.remove = function(self,v) 
-  local prev = nil;
-  local l = self.h;
-  while (l ~= nil) do 
-    if (l.item == v) then 
-      if (prev == nil) then 
-        self.h = l.next;
-      else
-        prev.next = l.next;
-      end;
-      if (self.q == l) then 
-        self.q = prev;
-      end;
-      self.length = self.length - 1;
-      do return true end;
-    end;
-    prev = l;
-    l = l.next;
-  end;
-  do return false end
-end
-
-__haxe_ds__List_ListNode.new = function(item,next) 
-  local self = _hx_new()
-  __haxe_ds__List_ListNode.super(self,item,next)
-  return self
-end
-__haxe_ds__List_ListNode.super = function(self,item,next) 
-  self.item = item;
-  self.next = next;
 end
 
 __haxe_iterators_ArrayIterator.new = function(array) 
@@ -1439,9 +1297,19 @@ local _hx_static_init = function()
   
   LevelTest.TILE_SIZE = 32;
   
+  LevelTest.TOUCH = _G.hash("touch");
+  
   LevelTest.walkable = _hx_tab_array({[0]=1, 3, 4, 5}, 4);
   
   Messages.changeCollection = _G.hash("changeCollection");
+  
+  Messages.buildBase = _G.hash("buildBase");
+  
+  Messages.buildTower = _G.hash("buildTower");
+  
+  Messages.buildMine = _G.hash("buildMine");
+  
+  Messages.buildBarracks = _G.hash("buildBarracks");
   
   __defold_CameraMessages.acquire_camera_focus = _G.hash("acquire_camera_focus");
   
@@ -1464,6 +1332,8 @@ local _hx_static_init = function()
   __defold_RenderMessages.clear_color = _G.hash("clear_color");
   
   __defold_RenderMessages.set_view_projection = _G.hash("set_view_projection");
+  
+  __gui_GameGui.TOUCH = _G.hash("touch");
   
   __renderer_RenderHelper.instance = __renderer_RenderHelper.new();
   
